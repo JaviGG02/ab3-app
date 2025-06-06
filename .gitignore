@@ -1,0 +1,11 @@
+# terraform generated files
+infrastructure-ab3/.terraform*
+terraform-plan
+
+# excluded files
+infrastructure-ab3/state.tf
+infrastructure-ab3/aurora*
+infrastructure-ab3/argo*
+
+manifests-ab3/aurora*
+manifests-ab3/argo*
