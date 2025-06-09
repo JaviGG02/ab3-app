@@ -1,0 +1,16 @@
+apiVersion: eks.amazonaws.com/v1
+kind: NodeClass
+metadata:
+  name: basic
+spec:
+  # Use role name here
+  role: "${node_iam_role_name}"
+  subnetSelectorTerms:
+    - tags:
+        Name: "${cluster_name}-private*"
+  securityGroupSelectorTerms:
+    - tags:
+        Name: "${cluster_name}-node"
+  tags:
+    Environment: "production"
+    Team: "platform"

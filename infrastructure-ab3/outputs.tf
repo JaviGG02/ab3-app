@@ -38,30 +38,3 @@ output "cluster_certificate_authority_data" {
   value       = module.eks.cluster_certificate_authority_data
   sensitive   = true
 }
-
-output "karpenter_iam_role_arn" {
-  description = "ARN of the IAM role used by Karpenter"
-  value       = module.karpenter.node_iam_role_arn
-}
-
-output "karpenter_queue_name" {
-  description = "Name of the SQS queue used by Karpenter"
-  value       = module.karpenter.queue_name
-}
-
-# Aurora MySQL outputs (placeholders)
-output "aurora_mysql_cluster_endpoint" {
-  description = "The cluster endpoint for Aurora MySQL"
-  value       = "placeholder-for-aurora-endpoint"
-}
-
-output "aurora_mysql_reader_endpoint" {
-  description = "The reader endpoint for Aurora MySQL"
-  value       = "placeholder-for-aurora-reader-endpoint"
-}
-
-# ArgoCD outputs (placeholders)
-output "argocd_url" {
-  description = "URL for ArgoCD UI"
-  value       = "placeholder-for-argocd-url"
-}

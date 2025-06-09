@@ -38,65 +38,46 @@ module "eks" {
     }
   }
 
-  cluster_addons = {
-    coredns = {
-      most_recent = true
-      configuration_values = jsonencode({
-        tolerations = [
-          # Allow CoreDNS to run on the same nodes as the Karpenter controller
-          {
-            key    = "karpenter.sh/controller"
-            value  = "true"
-            effect = "NoSchedule"
-          }
-        ]
-      })
-    }
-    eks-pod-identity-agent = {
-      most_recent = true
-    }
-    kube-proxy = {
-      most_recent = true
-    }
-    vpc-cni = {
-      most_recent = true
-    }
-  }
+  # cluster_addons = {
+  #   coredns = {
+  #     most_recent = true
+  #   }
+  #   eks-pod-identity-agent = {
+  #     most_recent = true
+  #   }
+  #   kube-proxy = {
+  #     most_recent = true
+  #   }
+  #   vpc-cni = {
+  #     most_recent = true
+  #   }
+  # }
 
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
 
-  # Managed node group for Karpenter controller
-  eks_managed_node_groups = {
-    karpenter = {
-      ami_type       = "BOTTLEROCKET_x86_64"
-      instance_types = var.karpenter_node_group_instance_types
-      
-      min_size     = 2
-      max_size     = 3
-      desired_size = 2
+  # Enable EKS AutoMode
+  cluster_compute_config = {
+    enabled    = true
+    node_pools = []
+  }
 
-      labels = {
-        # Used to ensure Karpenter runs on nodes that it does not manage
-        "karpenter.sh/controller" = "true"
-      }
+  # Access entry for AutoMode nodes
+  access_entries = {
+    custom_nodeclass_access = {
+      principal_arn = aws_iam_role.custom_nodeclass_role.arn
+      type          = "EC2"
 
-      taints = {
-        # The pods that do not tolerate this taint should run on nodes
-        # created by Karpenter
-        karpenter = {
-          key    = "karpenter.sh/controller"
-          value  = "true"
-          effect = "NO_SCHEDULE"
+      policy_associations = {
+        auto = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAutoNodePolicy"
+          access_scope = {
+            type = "cluster"
+          }
         }
       }
     }
   }
-
-  node_security_group_tags = merge(local.tags, {
-    # Tag for Karpenter auto-discovery
-    "karpenter.sh/discovery" = local.name
-  })
 
   tags = local.tags
 }

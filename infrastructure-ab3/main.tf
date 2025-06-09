@@ -20,14 +20,6 @@ terraform {
     }
   }
 
-  # State management configuration
-  # backend "s3" {
-  #   bucket         = "ab3-terraform-state"
-  #   key            = "ab3/terraform.tfstate"
-  #   region         = "eu-west-1"
-  #   encrypt        = true
-  #   dynamodb_table = "ab3-terraform-locks"
-  # }
 }
 
 provider "aws" {
@@ -68,6 +60,21 @@ provider "helm" {
   }
 }
 
+provider "kubectl" {
+  apply_retry_count      = 5
+  host                   = module.eks.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+  load_config_file       = false
+  config_path = "~/.kube/config"
+
+  exec {
+    api_version = "client.authentication.k8s.io/v1beta1"
+    command     = "aws"
+    args = ["eks", "get-token", "--cluster-name", module.eks.cluster_name,
+    "--region", local.region]
+  }
+}
+
 ################################################################################
 # Common data sources
 ################################################################################
@@ -82,4 +89,24 @@ data "aws_availability_zones" "available" {
     name   = "opt-in-status"
     values = ["opt-in-not-required"]
   }
+}
+
+################################################################################
+# Locals
+################################################################################
+locals {
+  name   = var.cluster_name
+  region = var.region
+
+  vpc_cidr = var.vpc_cidr
+  azs      = slice(data.aws_availability_zones.available.names, 0, 3)
+
+  # Merge default tags with user provided tags
+  tags = merge(
+    var.tags,
+    {
+      "kubernetes.io/cluster/${local.name}" = "owned"
+      "terraform-managed"                   = "true"
+    }
+  )
 }
