@@ -4,9 +4,14 @@ terraform-plan
 
 # excluded files
 infrastructure-ab3/state.tf
-infrastructure-ab3/aurora*
+infrastructure-ab3/upload_db_secrets
 infrastructure-ab3/argo*
 infrastructure-ab3/eks-automode-config/nodeclass-ebs-optimized.yaml
 
 manifests-ab3/aurora*
 manifests-ab3/argo*
+
+# Environment variables and secrets
+.env
+*.env
+.env.*

@@ -9,8 +9,7 @@ The infrastructure consists of the following components:
 - **VPC**: A dedicated VPC with public and private subnets across multiple availability zones
 - **EKS Cluster**: Managed Kubernetes cluster with proper IAM roles and security configurations
 - **Karpenter**: Auto-scaling solution for Kubernetes with support for AMD and ARM processors, as well as spot and on-demand instances
-- **Aurora MySQL**: (Placeholder) Managed MySQL-compatible database for application data
-- **ArgoCD**: (Placeholder) GitOps continuous delivery tool for Kubernetes
+- **Aurora MySQL**: Managed MySQL-compatible database for application data
 
 ## Directory Structure
 
@@ -20,17 +19,16 @@ ab3-app/
 │   ├── main.tf           # Provider configuration and common resources
 │   ├── variables.tf      # Input variables
 │   ├── outputs.tf        # Output values
-│   ├── locals.tf         # Local variables
 │   ├── vpc.tf            # VPC configuration
-│   ├── eks.tf            # EKS cluster configuration
-│   ├── karpenter.tf      # Karpenter configuration
-│   ├── aurora.tf         # Aurora MySQL configuration (placeholder)
-│   ├── argocd.tf         # ArgoCD configuration (placeholder)
-│   └── state.tf          # Terraform state management
-└── manifests-ab3/        # Kubernetes manifests
-    ├── karpenter.yaml    # Karpenter NodePool and EC2NodeClass
-    ├── argocd-placeholder.yaml  # ArgoCD Application placeholder
-    └── aurora-placeholder.yaml  # Aurora MySQL connection information
+│   ├── eks.tf           # EKS cluster configuration
+│   ├── automode.tf       # EKS AutoMode configuration
+│   ├── aurora.tf         # Aurora MySQL configuration
+│   └── upload_db_secrets.sh # Database secrets setup script
+└── eks-automode-config/  # EKS AutoMode configuration files
+    ├── nodeclass-basic.yaml
+    ├── nodepool-amd64.yaml
+    └── nodepool-graviton.yaml
+
 ```
 
 ## Prerequisites
@@ -39,33 +37,60 @@ ab3-app/
 - Terraform >= 1.3
 - kubectl
 - helm
+- AWS Secrets Manager access for database credentials
+- upload_db_secrets.sh script executed (required for Aurora MySQL deployment)
 
-## Deployment
+## Deployment Process
 
-1. Initialize Terraform:
+The deployment process follows a specific order to ensure proper resource creation and dependencies:
 
-```bash
-cd infrastructure-ab3
-terraform init
-```
+1. **Database Secrets Setup**:
+   ```bash
+   #!/bin/bash
+   
+   # Set your database credentials
+   DB_NAME="ab3db"
+   DB_USERNAME="admin"
+   DB_PASSWORD="<your-secure-password>"
+   
+   # Create JSON payload
+   SECRET_JSON=$(jq -n \
+   --arg username "$DB_USERNAME" \
+   --arg password "$DB_PASSWORD" \
+   --arg dbname "$DB_NAME" \
+   '{username: $username, password: $password, dbname: $dbname}')
 
-2. Review the plan:
+   # Try to create the secret
+   CREATE_RESULT=$(aws secretsmanager create-secret \
+   --name "ab3/aurora/credentials" \
+   --description "Aurora MySQL database credentials" \
+   --secret-string "$SECRET_JSON" 2>&1)
 
-```bash
-terraform plan
-```
+   # Check if the secret already exists
+   if echo "$CREATE_RESULT" | grep -q "ResourceExistsException"; then
+   aws secretsmanager update-secret \
+      --secret-id "ab3/aurora/credentials" \
+      --secret-string "$SECRET_JSON"
+   echo "Database credentials updated in AWS Secrets Manager"
+   else
+   echo "Database credentials uploaded to AWS Secrets Manager"
+   fi
+   ```
+   This creates the required secrets in AWS Secrets Manager for Aurora MySQL credentials.
 
-3. Apply the configuration:
+2. **Deploy Infrastructure**:
+   ```bash
+   cd infrastructure-ab3
+   terraform init
+   terraform plan
+   terraform apply
+   ```
 
-```bash
-terraform apply
-```
-
-4. Configure kubectl to connect to the EKS cluster:
-
-```bash
-aws eks --region <region> update-kubeconfig --name <cluster-name>
-```
+3. **Kubernetes Configuration**:
+   ```bash
+   # Configure kubectl to connect to the EKS cluster
+   aws eks --region <region> update-kubeconfig --name <cluster-name>
+   ```
 
 ## State Management
 

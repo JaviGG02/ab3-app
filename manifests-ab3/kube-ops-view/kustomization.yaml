@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: kube-ops-view
+resources:
+  - namespace.yaml
+  - rbac.yaml
+  - deployment.yaml
+  - service.yaml
+  - redis-deployment.yaml
+
+commonLabels:
+  app.kubernetes.io/name: kube-ops-view
+  app.kubernetes.io/part-of: monitoring
+  app.kubernetes.io/managed-by: kustomize
