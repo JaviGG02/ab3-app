@@ -14,6 +14,10 @@ try {
 Write-Host "Deleting kube-ops-view resources using kustomize..." -ForegroundColor Cyan
 kubectl delete -k . --ignore-not-found
 
+# Ensure the ingress is deleted (sometimes kustomize might miss it)
+Write-Host "Ensuring ingress is deleted..." -ForegroundColor Cyan
+kubectl delete ingress kube-ops-view -n kube-ops-view --ignore-not-found
+
 # Check if there are any remaining resources in the namespace
 $remainingResources = kubectl get all -n kube-ops-view 2>$null
 if ($remainingResources) {
@@ -25,16 +29,6 @@ if ($remainingResources) {
         Write-Host "Force deleting kube-ops-view namespace..." -ForegroundColor Cyan
         kubectl delete namespace kube-ops-view --force --grace-period=0
     }
-}
-
-# Ask if metrics-server should be removed
-$removeMetricsServer = Read-Host "Do you want to remove metrics-server as well? (y/n)"
-if ($removeMetricsServer -eq "y" -or $removeMetricsServer -eq "Y") {
-    Write-Host "Removing metrics-server..." -ForegroundColor Cyan
-    kubectl delete -f metrics-server.yaml --ignore-not-found
-    Write-Host "metrics-server has been removed." -ForegroundColor Green
-} else {
-    Write-Host "Keeping metrics-server installed." -ForegroundColor Green
 }
 
 # Check if the namespace still exists

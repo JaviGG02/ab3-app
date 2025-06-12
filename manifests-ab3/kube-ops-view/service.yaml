@@ -10,7 +10,7 @@ spec:
   selector:
     application: kube-ops-view
     component: frontend
-  type: LoadBalancer
+  type: ClusterIP
   ports:
   - port: 80
     protocol: TCP

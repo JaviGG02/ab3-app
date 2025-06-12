@@ -7,6 +7,7 @@ resources:
   - deployment.yaml
   - service.yaml
   - redis-deployment.yaml
+  - ingress.yaml
 
 commonLabels:
   app.kubernetes.io/name: kube-ops-view

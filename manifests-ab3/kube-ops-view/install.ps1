@@ -10,23 +10,18 @@ try {
     exit 1
 }
 
-# Apply metrics-server first if it doesn't exist
-Write-Host "Checking if metrics-server is already installed..." -ForegroundColor Cyan
-$metricsServerDeployment = kubectl get deployment -n kube-system metrics-server 2>$null
-if (-not $metricsServerDeployment) {
-    Write-Host "Installing metrics-server..." -ForegroundColor Cyan
-    kubectl apply -f metrics-server.yaml
+# Check if AWS Load Balancer Controller is installed
+Write-Host "Checking for AWS Load Balancer Controller..." -ForegroundColor Cyan
+$ingressControllerPods = kubectl get pods -n kube-system -l app.kubernetes.io/name=aws-load-balancer-controller -o name 2>$null
+if (-not $ingressControllerPods) {
+    Write-Host "WARNING: AWS Load Balancer Controller is not installed. The Ingress will not work." -ForegroundColor Yellow
+    Write-Host "Please ensure AWS Load Balancer Controller is installed via Terraform." -ForegroundColor Yellow
     
-    Write-Host "Waiting for metrics-server deployment to be ready..." -ForegroundColor Cyan
-    kubectl -n kube-system rollout status deployment metrics-server --timeout=60s
-    
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "WARNING: metrics-server deployment timed out. Continuing anyway..." -ForegroundColor Yellow
-    } else {
-        Write-Host "metrics-server successfully deployed!" -ForegroundColor Green
+    $continue = Read-Host "Do you want to continue anyway? (y/n)"
+    if ($continue -ne "y" -and $continue -ne "Y") {
+        Write-Host "Installation aborted." -ForegroundColor Red
+        exit 1
     }
-} else {
-    Write-Host "metrics-server is already installed, skipping..." -ForegroundColor Green
 }
 
 # Create namespace if it doesn't exist
@@ -47,14 +42,17 @@ kubectl -n kube-ops-view rollout status deployment kube-ops-view --timeout=90s
 Write-Host "Waiting for kube-ops-view-redis deployment to be ready..." -ForegroundColor Cyan
 kubectl -n kube-ops-view rollout status deployment kube-ops-view-redis --timeout=60s
 
-# Get the service details
-Write-Host "Checking LoadBalancer service status..." -ForegroundColor Cyan
-kubectl get service kube-ops-view -n kube-ops-view
+# Wait for ingress to be created
+Write-Host "Checking ingress status (this may take a few minutes to provision)..." -ForegroundColor Cyan
+Start-Sleep -Seconds 10
+
+Write-Host "Ingress status:" -ForegroundColor Cyan
+kubectl get ingress -n kube-ops-view
 
 Write-Host "`nkube-ops-view installation complete!" -ForegroundColor Green
 Write-Host "`nAccess options:" -ForegroundColor Cyan
-Write-Host "1. LoadBalancer URL (may take a few minutes to provision):" -ForegroundColor Cyan
-Write-Host "   kubectl get service kube-ops-view -n kube-ops-view -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'`n" -ForegroundColor White
+Write-Host "1. ALB URL (may take 3-5 minutes to provision):" -ForegroundColor Cyan
+Write-Host "   kubectl get ingress -n kube-ops-view -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}'`n" -ForegroundColor White
 
 Write-Host "2. Port forwarding (for immediate local access):" -ForegroundColor Cyan
 Write-Host "   Run: ./port-forward.ps1`n" -ForegroundColor White

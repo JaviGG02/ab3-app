@@ -1,0 +1,10 @@
+﻿{
+    "kind": "Namespace",
+    "apiVersion": "v1",
+    "metadata": {
+        "name": "kube-ops-view"
+    },
+    "spec": {
+        "finalizers": []
+    }
+}
