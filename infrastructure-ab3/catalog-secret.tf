@@ -7,11 +7,13 @@ metadata:
   namespace: catalog
 type: Opaque
 stringData:
-  DB_HOST: "${aws_rds_cluster.aurora.endpoint}"
-  DB_PORT: "3306"
-  DB_NAME: "catalog"
-  DB_USER: "${local.db_creds.username}"
-  DB_PASSWORD: "${local.db_creds.password}"
+  RETAIL_CATALOG_PERSISTENCE_PROVIDER: "mysql"
+  RETAIL_CATALOG_PERSISTENCE_ENDPOINT: "${aws_rds_cluster.aurora.endpoint}:3306"
+  RETAIL_CATALOG_PERSISTENCE_DB_NAME: "${aws_rds_cluster.aurora.database_name}"
+  RETAIL_CATALOG_PERSISTENCE_USER: "${local.db_creds.username}"
+  RETAIL_CATALOG_PERSISTENCE_PASSWORD: "${local.db_creds.password}"
+  RETAIL_CATALOG_PERSISTENCE_CONNECT_TIMEOUT: "5"
+
 YAML
 
   depends_on = [module.eks]

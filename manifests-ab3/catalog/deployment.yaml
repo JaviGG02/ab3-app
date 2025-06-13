@@ -23,29 +23,36 @@ spec:
         - containerPort: 8080
           name: http
         env:
-        - name: SPRING_PROFILES_ACTIVE
-          value: "prod"
-        - name: SPRING_DATASOURCE_URL
-          value: "jdbc:mysql://$(DB_HOST):$(DB_PORT)/$(DB_NAME)"
-        - name: SPRING_DATASOURCE_USERNAME
+        - name: PORT
+          value: "8080"
+        - name: RETAIL_CATALOG_PERSISTENCE_PROVIDER
+          value: "mysql"
+        - name: RETAIL_CATALOG_PERSISTENCE_ENDPOINT
           valueFrom:
             secretKeyRef:
               name: catalog-db-secret
-              key: DB_USER
-        - name: SPRING_DATASOURCE_PASSWORD
+              key: RETAIL_CATALOG_PERSISTENCE_ENDPOINT
+        - name: RETAIL_CATALOG_PERSISTENCE_DB_NAME
           valueFrom:
             secretKeyRef:
               name: catalog-db-secret
-              key: DB_PASSWORD
-        envFrom:
-        - secretRef:
-            name: catalog-db-secret
-        readinessProbe:
-          httpGet:
-            path: /actuator/health/readiness
-            port: 8080
-          initialDelaySeconds: 30
-          periodSeconds: 5
+              key: RETAIL_CATALOG_PERSISTENCE_DB_NAME
+        - name: RETAIL_CATALOG_PERSISTENCE_USER
+          valueFrom:
+            secretKeyRef:
+              name: catalog-db-secret
+              key: RETAIL_CATALOG_PERSISTENCE_USER
+        - name: RETAIL_CATALOG_PERSISTENCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: catalog-db-secret
+              key: RETAIL_CATALOG_PERSISTENCE_PASSWORD
+        # readinessProbe:
+        #   httpGet:
+        #     path: /health
+        #     port: 8080
+        #   initialDelaySeconds: 30
+        #   periodSeconds: 5
         resources:
           limits:
             memory: 512Mi
