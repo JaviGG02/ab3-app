@@ -123,24 +123,6 @@ YAML
 
 }
 
-# resource "kubectl_manifest" "orders_db_secret" {
-#   yaml_body = <<-YAML
-# apiVersion: v1
-# kind: Secret
-# metadata:
-#   name: orders-db-secret
-#   namespace: default
-# type: Opaque
-# stringData:
-#   DB_HOST: "${aws_rds_cluster.aurora.endpoint}"
-#   DB_PORT: "3306"
-#   DB_NAME: "orders"
-#   DB_USER: "${aws_rds_cluster.aurora.master_username}"
-#   DB_PASSWORD: "${aws_rds_cluster.aurora.master_password}"
-# YAML
-
-#   depends_on = [module.eks]
-# }
 
 ################################################################################
 # Outputs

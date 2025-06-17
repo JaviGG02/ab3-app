@@ -30,9 +30,9 @@ provider "aws" {
   }
 }
 
-# This provider is required for ECR to authenticate with public repos
+# This provider is required for ECR and CloudFront to authenticate with public repos
 provider "aws" {
-  alias  = "ecr"
+  alias  = "ecr-cloudfront"
   region = "us-east-1"
 }
 
@@ -80,7 +80,7 @@ provider "kubectl" {
 ################################################################################
 
 data "aws_ecrpublic_authorization_token" "token" {
-  provider = aws.ecr
+  provider = aws.ecr-cloudfront
 }
 
 data "aws_availability_zones" "available" {

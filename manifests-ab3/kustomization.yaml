@@ -6,4 +6,4 @@ resources:
 - catalog.yaml
 - checkout.yaml
 - orders.yaml
-- ui.yaml
+- ./ui/
