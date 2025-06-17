@@ -19,7 +19,7 @@ metadata:
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
     alb.ingress.kubernetes.io/success-codes: "200"
     alb.ingress.kubernetes.io/load-balancer-attributes: "idle_timeout.timeout_seconds=60"
-    # alb.ingress.kubernetes.io/security-groups: ${security_group_ids}
+    
 
 spec:
   rules:

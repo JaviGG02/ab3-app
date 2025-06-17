@@ -19,10 +19,8 @@ resource "kubectl_manifest" "ui_deployment" {
 }
 
 resource "kubectl_manifest" "ui_ingress" {
-  yaml_body = templatefile("${path.module}/../manifests-ab3/ui/ingress.yaml", {
-    security_group_ids = aws_security_group.alb_cloudfront_only.id
-  })
-  depends_on = [kubectl_manifest.ui_deployment, aws_security_group.alb_cloudfront_only]
+  yaml_body = templatefile("${path.module}/../manifests-ab3/ui/ingress.yaml", {})
+  depends_on = [kubectl_manifest.ui_deployment]
 }
  # origin_verify = random_password.origin_verify.result
 
@@ -34,13 +32,6 @@ data "kubernetes_ingress_v1" "ui_ingress" {
 
   depends_on = [kubectl_manifest.ui_ingress]
 }
-
-output "alb_hostname" {
-  value       = try(data.kubernetes_ingress_v1.ui_ingress.status[0].load_balancer[0].ingress[0].hostname, "ALB not ready")
-  description = "ALB DNS name provisioned by the Ingress Controller"
-}
-
-
 
 # Enhanced WAF ACL with basic ruleset
 resource "aws_wafv2_web_acl" "basic_acl" {
@@ -187,168 +178,6 @@ resource "aws_cloudfront_distribution" "ui_distribution" {
   web_acl_id = aws_wafv2_web_acl.basic_acl.arn
 
   tags = local.tags
-}
-
-# Get current AWS account ID
-data "aws_caller_identity" "current" {
-  provider = aws.ecr-cloudfront
-}
-
-# Get CloudFront managed prefix list
-data "aws_ec2_managed_prefix_list" "cloudfront" {
-  name = "com.amazonaws.global.cloudfront.origin-facing"
-}
-
-# Security groups for the application
-# 1. ALB security group - only allows traffic from CloudFront
-resource "aws_security_group" "alb_cloudfront_only" {
-  name        = "alb-cloudfront-only"
-  description = "Allow traffic from CloudFront to ALB only"
-  vpc_id      = module.vpc.vpc_id
-
-  # Allow CloudFront traffic to ALB
-  ingress {
-    description     = "HTTP from CloudFront"
-    from_port       = 80
-    to_port         = 80
-    protocol        = "tcp"
-    prefix_list_ids = [data.aws_ec2_managed_prefix_list.cloudfront.id]
-  }
-
-  # Allow all outbound traffic
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = merge(
-    local.tags,
-    {
-      Name = "alb-cloudfront-only"
-    }
-  )
-}
-
-# 2. Microservices security group - allows internal communication between services
-resource "aws_security_group" "microservices_internal" {
-  name        = "microservices-internal"
-  description = "Allow internal traffic between microservices"
-  vpc_id      = module.vpc.vpc_id
-  
-  # Allow internal VPC traffic for microservice communication
-  ingress {
-    description = "Internal VPC traffic"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = [module.vpc.vpc_cidr_block]
-  }
-  
-  # Allow all outbound traffic
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = merge(
-    local.tags,
-    {
-      Name = "microservices-internal"
-    }
-  )
-}
-
-# 3. Database security group - only allows traffic from microservices
-resource "aws_security_group" "database_internal" {
-  name        = "database-internal"
-  description = "Allow traffic from microservices to databases"
-  vpc_id      = module.vpc.vpc_id
-  
-  # Allow PostgreSQL access from microservices
-  ingress {
-    description     = "PostgreSQL from microservices"
-    from_port       = 5432
-    to_port         = 5432
-    protocol        = "tcp"
-    security_groups = [aws_security_group.microservices_internal.id]
-  }
-  
-  # Allow RabbitMQ access from microservices
-  ingress {
-    description     = "RabbitMQ from microservices"
-    from_port       = 5672
-    to_port         = 5672
-    protocol        = "tcp"
-    security_groups = [aws_security_group.microservices_internal.id]
-  }
-  
-  # Allow RabbitMQ management interface from microservices
-  ingress {
-    description     = "RabbitMQ Management from microservices"
-    from_port       = 15672
-    to_port         = 15672
-    protocol        = "tcp"
-    security_groups = [aws_security_group.microservices_internal.id]
-  }
-  
-  # Allow Redis access from microservices
-  ingress {
-    description     = "Redis from microservices"
-    from_port       = 6379
-    to_port         = 6379
-    protocol        = "tcp"
-    security_groups = [aws_security_group.microservices_internal.id]
-  }
-  
-  # Allow DynamoDB local access from microservices
-  ingress {
-    description     = "DynamoDB local from microservices"
-    from_port       = 8000
-    to_port         = 8000
-    protocol        = "tcp"
-    security_groups = [aws_security_group.microservices_internal.id]
-  }
-
-  # Allow all outbound traffic
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = merge(
-    local.tags,
-    {
-      Name = "database-internal"
-    }
-  )
-}
-
-# Instructions for the user
-output "next_steps" {
-  value = <<-EOT
-IMPORTANT: Follow these steps to complete the setup:
-
-1. Apply the Terraform configuration:
-   terraform apply
-
-2. Wait for the Kubernetes resources to be created and the ALB to be provisioned.
-   This will automatically apply the UI manifests from the /ui/ folder using kustomize.
-
-3. The CloudFront distribution will automatically use the ALB hostname from the ingress.
-   Access your application via the CloudFront domain:
-   ${aws_cloudfront_distribution.ui_distribution.domain_name}
-
-NOTE: Shield Advanced protection requires a subscription. To enable it:
-1. Subscribe to Shield Advanced in the AWS console
-2. Uncomment the aws_shield_protection resource in web-layer.tf
-3. Run terraform apply again
-EOT
 }
 
 output "cloudfront_domain_name" {
