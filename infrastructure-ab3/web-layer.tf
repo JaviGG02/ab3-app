@@ -22,7 +22,7 @@ resource "kubectl_manifest" "ui_ingress" {
   yaml_body = templatefile("${path.module}/../manifests-ab3/ui/ingress.yaml", {})
   depends_on = [kubectl_manifest.ui_deployment]
 }
- # origin_verify = random_password.origin_verify.result
+
 
 data "kubernetes_ingress_v1" "ui_ingress" {
   metadata {
@@ -139,8 +139,15 @@ resource "aws_cloudfront_distribution" "ui_distribution" {
       origin_protocol_policy = "http-only"
       origin_ssl_protocols   = ["TLSv1.2"]
     }
+    
+    # Ensure all headers are forwarded to the origin
+    custom_header {
+      name  = "X-Forwarded-Host"
+      value = data.kubernetes_ingress_v1.ui_ingress.status.0.load_balancer.0.ingress.0.hostname
+    }
   }
-
+  
+  # Default cache behavior for all other paths
   default_cache_behavior {
     allowed_methods        = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
     cached_methods         = ["GET", "HEAD"]
@@ -153,12 +160,12 @@ resource "aws_cloudfront_distribution" "ui_distribution" {
       cookies {
         forward = "all"
       }
-      headers = ["Host", "Origin", "Authorization"]
+      headers = ["*"] # Forward all headers to ensure proper routing
     }
 
     min_ttl     = 0
-    default_ttl = 3600
-    max_ttl     = 86400
+    default_ttl = 0  # Disable caching for dynamic content
+    max_ttl     = 0  # Disable caching for dynamic content
   }
 
 
