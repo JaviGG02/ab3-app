@@ -61,8 +61,9 @@ module "eks" {
 
   # Enable EKS AutoMode
   cluster_compute_config = {
-    enabled    = true
+    enabled = true
   }
+
 
   
   # Access entry for AutoMode nodes

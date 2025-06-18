@@ -7,3 +7,43 @@ resources:
 - checkout.yaml
 - orders.yaml
 - ./ui/
+- ./eks-automode-config/
+- ./kube-ops-view/
+
+patches:
+- path: carts-graviton-patch.yaml
+  target:
+    kind: Deployment
+    name: carts
+- path: carts-dynamodb-graviton-patch.yaml
+  target:
+    kind: Deployment
+    name: carts-dynamodb
+- path: catalog-graviton-patch.yaml
+  target:
+    kind: Deployment
+    name: catalog
+- path: ui-graviton-patch.yaml
+  target:
+    kind: Deployment
+    name: ui
+- path: checkout-graviton-patch.yaml
+  target:
+    kind: Deployment
+    name: checkout
+- path: checkout-redis-graviton-patch.yaml
+  target:
+    kind: Deployment
+    name: checkout-redis
+- path: orders-graviton-patch.yaml
+  target:
+    kind: Deployment
+    name: orders
+- path: orders-postgresql-graviton-patch.yaml
+  target:
+    kind: StatefulSet
+    name: orders-postgresql
+- path: orders-rabbitmq-graviton-patch.yaml
+  target:
+    kind: StatefulSet
+    name: orders-rabbitmq

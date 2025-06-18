@@ -19,7 +19,7 @@ spec:
           values: ["amd64"]
         - key: "eks.amazonaws.com/instance-category"
           operator: In
-          values: ["c", "m", "r"]
+          values: ["c", "t", "m", "r"]
       nodeClassRef:
         name: basic
         group: eks.amazonaws.com

@@ -9,6 +9,16 @@ resources:
   - redis-deployment.yaml
   - ingress.yaml
 
+patches:
+  - path: amd64-patch.yaml
+    target:
+      kind: Deployment
+      name: kube-ops-view
+  - path: redis-amd64-patch.yaml
+    target:
+      kind: Deployment
+      name: kube-ops-view-redis
+
 commonLabels:
   app.kubernetes.io/name: kube-ops-view
   app.kubernetes.io/part-of: monitoring

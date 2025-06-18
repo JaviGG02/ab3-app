@@ -51,7 +51,7 @@ locals {
 resource "kubectl_manifest" "custom_nodeclass" {
   for_each = toset(local.custom_nodeclass_yamls)
 
-  yaml_body = templatefile("${path.module}/eks-automode-config/${each.value}", {
+  yaml_body = templatefile("${path.module}/../manifests-ab3/eks-automode-config/${each.value}", {
     node_iam_role_name = aws_iam_role.custom_nodeclass_role.name
     cluster_name       = module.eks.cluster_name
   })
@@ -63,7 +63,7 @@ resource "kubectl_manifest" "custom_nodeclass" {
 resource "kubectl_manifest" "custom_nodepool" {
   for_each = toset(local.custom_nodepool_yamls)
 
-  yaml_body = file("${path.module}/eks-automode-config/${each.value}")
+  yaml_body = file("${path.module}/../manifests-ab3/eks-automode-config/${each.value}")
 
   depends_on = [kubectl_manifest.custom_nodeclass]
 }
