@@ -1,119 +1,166 @@
-# AB3 Infrastructure
+# AWS Infrastructure for Retail Store Sample Application
 
-This repository contains Terraform code for deploying a comprehensive AWS infrastructure for the AB3 application, including EKS with Karpenter, Aurora MySQL, and ArgoCD integration.
+This repository contains the infrastructure code for deploying the retail store sample application. The infrastructure is organized into three deployment stages for better management and dependency handling.
 
-## Architecture
-
-The infrastructure consists of the following components:
-
-- **VPC**: A dedicated VPC with public and private subnets across multiple availability zones
-- **EKS Cluster**: Managed Kubernetes cluster with proper IAM roles and security configurations
-- **Karpenter**: Auto-scaling solution for Kubernetes with support for AMD and ARM processors, as well as spot and on-demand instances
-- **Aurora MySQL**: Managed MySQL-compatible database for application data
-
-## Directory Structure
+## Repository Structure
 
 ```
-ab3-app/
-├── infrastructure-ab3/    # Terraform infrastructure code
-│   ├── main.tf           # Provider configuration and common resources
-│   ├── variables.tf      # Input variables
-│   ├── outputs.tf        # Output values
-│   ├── vpc.tf            # VPC configuration
-│   ├── eks.tf           # EKS cluster configuration
-│   ├── automode.tf       # EKS AutoMode configuration
-│   ├── aurora.tf         # Aurora MySQL configuration
-│   └── upload_db_secrets.sh # Database secrets setup script
-└── eks-automode-config/  # EKS AutoMode configuration files
-    ├── nodeclass-basic.yaml
-    ├── nodepool-amd64.yaml
-    └── nodepool-graviton.yaml
-
+infrastructure-ab3/
+├── modules/              # Reusable Terraform modules
+│   ├── vpc/             # VPC and networking
+│   ├── eks/             # EKS cluster configuration
+│   ├── aurora/          # Aurora database
+│   ├── retail-app/      # Retail application deployment
+│   └── web-layer/       # Web layer and CDN
+├── stages/              # Deployment stages
+│   ├── 01-core-infra/   # Core infrastructure (VPC, EKS, Aurora)
+│   ├── 02-retail-app/   # Retail application deployment
+│   └── 03-web-layer/    # Web layer deployment
+└── scripts/             # Utility scripts
 ```
 
 ## Prerequisites
 
-- AWS CLI configured with appropriate credentials
-- Terraform >= 1.3
-- kubectl
-- helm
-- AWS Secrets Manager access for database credentials
-- upload_db_secrets.sh script executed (required for Aurora MySQL deployment)
+1. AWS CLI configured with appropriate credentials
+2. Terraform >= 1.3
+3. kubectl
+4. helm
+5. AWS Secrets Manager secret named "ab3/aurora/credentials" with the following structure:
+   ```json
+   {
+     "username": "admin",
+     "password": "your-secure-password",
+     "dbname": "retaildb"
+   }
+   ```
+
+You can create this secret using the AWS CLI:
+```bash
+aws secretsmanager create-secret \
+    --name ab3/aurora/credentials \
+    --secret-string '{"username":"admin","password":"your-secure-password","dbname":"retaildb"}'
+```
 
 ## Deployment Process
 
-The deployment process follows a specific order to ensure proper resource creation and dependencies:
+The infrastructure is deployed in three stages:
 
-1. **Database Secrets Setup**:
-   ```bash
-   #!/bin/bash
-   
-   # Set your database credentials
-   DB_NAME="ab3db"
-   DB_USERNAME="admin"
-   DB_PASSWORD="<your-secure-password>"
-   
-   # Create JSON payload
-   SECRET_JSON=$(jq -n \
-   --arg username "$DB_USERNAME" \
-   --arg password "$DB_PASSWORD" \
-   --arg dbname "$DB_NAME" \
-   '{username: $username, password: $password, dbname: $dbname}')
+### Stage 1: Core Infrastructure
 
-   # Try to create the secret
-   CREATE_RESULT=$(aws secretsmanager create-secret \
-   --name "ab3/aurora/credentials" \
-   --description "Aurora MySQL database credentials" \
-   --secret-string "$SECRET_JSON" 2>&1)
+This stage deploys the foundational AWS infrastructure:
+- VPC and networking components
+- EKS cluster
+- Aurora database cluster
 
-   # Check if the secret already exists
-   if echo "$CREATE_RESULT" | grep -q "ResourceExistsException"; then
-   aws secretsmanager update-secret \
-      --secret-id "ab3/aurora/credentials" \
-      --secret-string "$SECRET_JSON"
-   echo "Database credentials updated in AWS Secrets Manager"
-   else
-   echo "Database credentials uploaded to AWS Secrets Manager"
-   fi
-   ```
-   This creates the required secrets in AWS Secrets Manager for Aurora MySQL credentials.
+```bash
+cd stages/01-core-infra
+terraform init
+terraform plan
+terraform apply
+```
 
-2. **Deploy Infrastructure**:
-   ```bash
-   cd infrastructure-ab3
-   terraform init
-   terraform plan
-   terraform apply
-   ```
+Verify the deployment:
+```bash
+# Verify VPC and subnets
+aws ec2 describe-vpcs --filters "Name=tag:Name,Values=${CLUSTER_NAME}"
+aws ec2 describe-subnets --filters "Name=vpc-id,Values=${VPC_ID}"
 
-3. **Kubernetes Configuration**:
-   ```bash
-   # Configure kubectl to connect to the EKS cluster
-   aws eks --region <region> update-kubeconfig --name <cluster-name>
-   ```
+# Verify EKS cluster
+aws eks describe-cluster --name ${CLUSTER_NAME}
+kubectl get nodes  # Should show AutoMode nodes
+
+# Verify Aurora cluster
+aws rds describe-db-clusters --db-cluster-identifier ${CLUSTER_NAME}-aurora
+```
+
+### Stage 2: Retail Application
+
+This stage deploys the retail store application to the EKS cluster:
+- Application namespaces
+- Kubernetes deployments and services
+- Database configurations
+
+```bash
+cd ../02-retail-app
+terraform init
+terraform plan
+terraform apply
+```
+
+Verify the deployment:
+```bash
+# Verify Kubernetes resources
+kubectl get pods -A  # Check all pods are running
+kubectl get services # Verify all services are created
+kubectl get secrets -n default # Verify database secrets exist
+
+# Verify database connectivity
+kubectl exec -it $(kubectl get pod -l app=catalog -o jsonpath='{.items[0].metadata.name}') -- curl localhost:8080/health
+```
+
+### Stage 3: Web Layer
+
+This stage deploys the web layer and CDN:
+- CloudFront distribution
+- SSL/TLS certificates
+- DNS configurations
+- WAF configuration
+
+```bash
+cd ../03-web-layer
+terraform init
+terraform plan
+terraform apply
+```
+
+Verify the deployment:
+```bash
+# Verify CloudFront distribution
+aws cloudfront list-distributions --query "DistributionList.Items[?Comment=='UI Distribution']"
+
+# Verify WAF ACL
+aws wafv2 list-web-acls --scope CLOUDFRONT --region us-east-1
+aws wafv2 list-web-acls --scope REGIONAL --region ${AWS_REGION}
+
+# Verify ALB and WAF association
+aws elbv2 describe-load-balancers --names ${CLUSTER_NAME}*
+aws wafv2 list-web-acl-associations --scope REGIONAL --region ${AWS_REGION}
+
+# Test the application
+CLOUDFRONT_URL=$(terraform output -raw cloudfront_domain_name)
+curl -v https://${CLOUDFRONT_URL}/health
+```
 
 ## State Management
 
-This project uses remote state management with:
+Each stage maintains its own state file in an S3 backend. The stages use remote state data sources to access outputs from previous stages.
 
-- S3 bucket for state storage
-- DynamoDB table for state locking
+## Configuration
 
-## Security Considerations
+1. Create an S3 bucket for Terraform state:
+```bash
+aws s3 mb s3://your-terraform-state-bucket
+```
 
-- EKS cluster with private endpoint
-- Proper IAM roles with least privilege
-- Network security groups with restricted access
-- Encrypted storage for sensitive data
+2. Update the backend configuration in each stage's main.tf with your S3 bucket details.
 
-## Tagging Strategy
+3. Configure variables for each stage in their respective terraform.tfvars files.
 
-All resources are tagged with:
+## Cleanup
 
-- Project: AB3
-- Environment: (dev/staging/prod)
-- ManagedBy: terraform
+To destroy the infrastructure, remove the stages in reverse order:
+
+```bash
+cd stages/03-web-layer
+terraform destroy
+
+cd ../02-retail-app
+terraform destroy
+
+cd ../01-core-infra
+terraform destroy
+```
 
 ## Contributing
 
-Please follow the established code structure and naming conventions when contributing to this project.
+Please see the CONTRIBUTING.md file for guidelines on contributing to this project.

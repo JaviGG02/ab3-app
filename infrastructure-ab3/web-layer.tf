@@ -1,25 +1,25 @@
 # Applying UI Microservice Resources
 resource "kubectl_manifest" "ui_sa" {
-  yaml_body = file("${path.module}/../manifests-ab3/ui/service-acc.yaml")
+  yaml_body = file("${path.module}/../manifests-ab3/retail-sample-app/ui/service-acc.yaml")
 }
 
 resource "kubectl_manifest" "ui_configmap" {
-  yaml_body = file("${path.module}/../manifests-ab3/ui/config-map.yaml")
+  yaml_body = file("${path.module}/../manifests-ab3/retail-sample-app/ui/config-map.yaml")
   depends_on = [kubectl_manifest.ui_sa]
 }
 
 resource "kubectl_manifest" "ui_service" {
-  yaml_body = file("${path.module}/../manifests-ab3/ui/service.yaml")
+  yaml_body = file("${path.module}/../manifests-ab3/retail-sample-app/ui/service.yaml")
   depends_on = [kubectl_manifest.ui_configmap]
 }
 
 resource "kubectl_manifest" "ui_deployment" {
-  yaml_body = file("${path.module}/../manifests-ab3/ui/deployment.yaml")
+  yaml_body = file("${path.module}/../manifests-ab3/retail-sample-app/ui/deployment.yaml")
   depends_on = [kubectl_manifest.ui_service]
 }
 
 resource "kubectl_manifest" "ui_ingress" {
-  yaml_body = templatefile("${path.module}/../manifests-ab3/ui/ingress.yaml", {
+  yaml_body = templatefile("${path.module}/../manifests-ab3/retail-sample-app/ui/ingress.yaml", {
     CLOUDFRONT_SECRET = random_string.cloudfront_secret.result
   })
   depends_on = [kubectl_manifest.ui_deployment]
@@ -186,13 +186,15 @@ output "alb_name" {
 
 # Find the ALB using data source with name filter
 data "aws_lb" "ui_alb" {
-  # Use name_prefix to find the ALB since we can't get the exact name from the hostname
   name = local.alb_name
 }
 
+# WAF association with ALB
 resource "aws_wafv2_web_acl_association" "alb_assoc" {
   resource_arn = data.aws_lb.ui_alb.arn
   web_acl_arn  = aws_wafv2_web_acl.alb_acl.arn
+  
+  depends_on = [data.aws_lb.ui_alb]
 }
 
 # CloudFront distribution with ALB origin
@@ -224,6 +226,11 @@ resource "aws_cloudfront_distribution" "ui_distribution" {
       name  = "X-Forwarded-Host"
       value = data.kubernetes_ingress_v1.ui_ingress.status.0.load_balancer.0.ingress.0.hostname
     }
+  }
+  
+  lifecycle {
+    # Ignore any references to the ALB that might be in the CloudFront distribution
+    ignore_changes = [origin]
   }
   
   # Default cache behavior for all other paths
