@@ -19,10 +19,11 @@ resource "kubectl_manifest" "ui_deployment" {
 }
 
 resource "kubectl_manifest" "ui_ingress" {
-  yaml_body = templatefile("${path.module}/../manifests-ab3/ui/ingress.yaml", {})
+  yaml_body = templatefile("${path.module}/../manifests-ab3/ui/ingress.yaml", {
+    CLOUDFRONT_SECRET = random_string.cloudfront_secret.result
+  })
   depends_on = [kubectl_manifest.ui_deployment]
 }
-
 
 data "kubernetes_ingress_v1" "ui_ingress" {
   metadata {
@@ -31,6 +32,12 @@ data "kubernetes_ingress_v1" "ui_ingress" {
   }
 
   depends_on = [kubectl_manifest.ui_ingress]
+}
+
+# Generate a random string to use as a secret between CloudFront and ALB
+resource "random_string" "cloudfront_secret" {
+  length  = 16
+  special = false
 }
 
 # Enhanced WAF ACL with basic ruleset
@@ -122,6 +129,72 @@ resource "aws_wafv2_web_acl" "basic_acl" {
   tags = local.tags
 }
 
+# Blocking ALB request from outside cloudfront
+resource "aws_wafv2_web_acl" "alb_acl" {
+  name        = "alb-waf-acl"
+  description = "Allow only CloudFront with secret header"
+  scope       = "REGIONAL" # <-- Critical for ALB
+  default_action {
+    block {}
+  }
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "alb-waf"
+    sampled_requests_enabled   = true
+  }
+  rule {
+    name     = "AllowCloudFrontHeader"
+    priority = 1
+    action {
+      allow {}
+    }
+    statement {
+      byte_match_statement {
+        field_to_match {
+          single_header {
+            name = "x-cloudfront-secret"
+          }
+        }
+        positional_constraint = "EXACTLY"
+        search_string         = random_string.cloudfront_secret.result
+        
+        text_transformation {
+          priority = 0
+          type     = "NONE"
+        }
+      }
+    }
+    visibility_config {
+      sampled_requests_enabled   = true
+      cloudwatch_metrics_enabled = true
+      metric_name                = "allow-cloudfront-header"
+    }
+  }
+}
+
+locals {
+  # Parse the ALB hostname to get the ARN
+  alb_hostname = data.kubernetes_ingress_v1.ui_ingress.status[0].load_balancer[0].ingress[0].hostname
+  # For hostname format like "k8s-default-uiingres-24a499ec52-247129238.eu-west-1.elb.amazonaws.com"
+  # Extract the part before the first dot, then take only the first 4 segments
+  hostname_without_domain = split(".", local.alb_hostname)[0]
+  alb_name = join("-", slice(split("-", local.hostname_without_domain), 0, 4))
+}
+output "alb_name" {
+  value = local.alb_name
+}
+
+# Find the ALB using data source with name filter
+data "aws_lb" "ui_alb" {
+  # Use name_prefix to find the ALB since we can't get the exact name from the hostname
+  name = local.alb_name
+}
+
+resource "aws_wafv2_web_acl_association" "alb_assoc" {
+  resource_arn = data.aws_lb.ui_alb.arn
+  web_acl_arn  = aws_wafv2_web_acl.alb_acl.arn
+}
+
 # CloudFront distribution with ALB origin
 resource "aws_cloudfront_distribution" "ui_distribution" {
   provider = aws.ecr-cloudfront
@@ -138,6 +211,12 @@ resource "aws_cloudfront_distribution" "ui_distribution" {
       https_port             = 443
       origin_protocol_policy = "http-only"
       origin_ssl_protocols   = ["TLSv1.2"]
+    }
+    
+    # Add a secret header to identify CloudFront requests
+    custom_header {
+      name  = "X-CloudFront-Secret"
+      value = random_string.cloudfront_secret.result
     }
     
     # Ensure all headers are forwarded to the origin
@@ -168,7 +247,6 @@ resource "aws_cloudfront_distribution" "ui_distribution" {
     max_ttl     = 0  # Disable caching for dynamic content
   }
 
-
   price_class = "PriceClass_100" # Use only North America and Europe
 
   restrictions {
@@ -185,6 +263,12 @@ resource "aws_cloudfront_distribution" "ui_distribution" {
   web_acl_id = aws_wafv2_web_acl.basic_acl.arn
 
   tags = local.tags
+}
+
+
+# OUTPUTS 
+output "ui_ingress_hostname" {
+  value = data.kubernetes_ingress_v1.ui_ingress.status[0].load_balancer[0].ingress[0].hostname
 }
 
 output "cloudfront_domain_name" {
