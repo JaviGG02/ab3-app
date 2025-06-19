@@ -1,37 +1,35 @@
 # Applying UI Microservice Resources
-resource "kubectl_manifest" "ui_sa" {
-  yaml_body = file("${path.module}/../manifests-ab3/retail-sample-app/ui/service-acc.yaml")
-}
+# resource "kubectl_manifest" "ui_sa" {
+#   yaml_body = file("${path.module}/../manifests-ab3/retail-sample-app/ui/service-acc.yaml")
+# }
 
-resource "kubectl_manifest" "ui_configmap" {
-  yaml_body = file("${path.module}/../manifests-ab3/retail-sample-app/ui/config-map.yaml")
-  depends_on = [kubectl_manifest.ui_sa]
-}
+# resource "kubectl_manifest" "ui_configmap" {
+#   yaml_body = file("${path.module}/../manifests-ab3/retail-sample-app/ui/config-map.yaml")
+#   depends_on = [kubectl_manifest.ui_sa]
+# }
 
-resource "kubectl_manifest" "ui_service" {
-  yaml_body = file("${path.module}/../manifests-ab3/retail-sample-app/ui/service.yaml")
-  depends_on = [kubectl_manifest.ui_configmap]
-}
+# resource "kubectl_manifest" "ui_service" {
+#   yaml_body = file("${path.module}/../manifests-ab3/retail-sample-app/ui/service.yaml")
+#   depends_on = [kubectl_manifest.ui_configmap]
+# }
 
-resource "kubectl_manifest" "ui_deployment" {
-  yaml_body = file("${path.module}/../manifests-ab3/retail-sample-app/ui/deployment.yaml")
-  depends_on = [kubectl_manifest.ui_service]
-}
+# resource "kubectl_manifest" "ui_deployment" {
+#   yaml_body = file("${path.module}/../manifests-ab3/retail-sample-app/ui/deployment.yaml")
+#   depends_on = [kubectl_manifest.ui_service]
+# }
 
-resource "kubectl_manifest" "ui_ingress" {
-  yaml_body = templatefile("${path.module}/../manifests-ab3/retail-sample-app/ui/ingress.yaml", {
-    CLOUDFRONT_SECRET = random_string.cloudfront_secret.result
-  })
-  depends_on = [kubectl_manifest.ui_deployment]
-}
+# resource "kubectl_manifest" "ui_ingress" {
+#   yaml_body = templatefile("${path.module}/../manifests-ab3/retail-sample-app/ui/ingress.yaml", {
+#     CLOUDFRONT_SECRET = random_string.cloudfront_secret.result
+#   })
+#   depends_on = [kubectl_manifest.ui_deployment]
+# }
 
 data "kubernetes_ingress_v1" "ui_ingress" {
   metadata {
     name      = "ui-ingress"
     namespace = "default"
   }
-
-  depends_on = [kubectl_manifest.ui_ingress]
 }
 
 # Generate a random string to use as a secret between CloudFront and ALB
@@ -172,11 +170,9 @@ resource "aws_wafv2_web_acl" "alb_acl" {
   }
 }
 
-locals {
   # Parse the ALB hostname to get the ARN
+locals {
   alb_hostname = data.kubernetes_ingress_v1.ui_ingress.status[0].load_balancer[0].ingress[0].hostname
-  # For hostname format like "k8s-default-uiingres-24a499ec52-247129238.eu-west-1.elb.amazonaws.com"
-  # Extract the part before the first dot, then take only the first 4 segments
   hostname_without_domain = split(".", local.alb_hostname)[0]
   alb_name = join("-", slice(split("-", local.hostname_without_domain), 0, 4))
 }
@@ -278,9 +274,9 @@ output "ui_ingress_hostname" {
   value = data.kubernetes_ingress_v1.ui_ingress.status[0].load_balancer[0].ingress[0].hostname
 }
 
-output "cloudfront_domain_name" {
-  value = aws_cloudfront_distribution.ui_distribution.domain_name
-}
+# output "cloudfront_domain_name" {
+#   value = aws_cloudfront_distribution.ui_distribution.domain_name
+# }
 
 output "waf_acl_arn" {
   value = aws_wafv2_web_acl.basic_acl.arn

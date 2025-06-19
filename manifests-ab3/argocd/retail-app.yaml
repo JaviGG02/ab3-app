@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: retail-sample-app
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:JaviGG02/ab3-app.git
+    targetRevision: dev
+    path: manifests-ab3/retail-sample-app
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
