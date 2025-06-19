@@ -96,27 +96,27 @@ resource "aws_wafv2_web_acl" "basic_acl" {
   }
 
   # Rate Limiting
-  rule {
-    name     = "RateLimit"
-    priority = 3
+  # rule {
+  #   name     = "RateLimit"
+  #   priority = 3
 
-    action {
-      block {}
-    }
+  #   action {
+  #     block {}
+  #   }
 
-    statement {
-      rate_based_statement {
-        limit              = 1000
-        aggregate_key_type = "IP"
-      }
-    }
+  #   statement {
+  #     rate_based_statement {
+  #       limit              = 1000
+  #       aggregate_key_type = "IP"
+  #     }
+  #   }
 
-    visibility_config {
-      cloudwatch_metrics_enabled = true
-      metric_name               = "RateLimitMetric"
-      sampled_requests_enabled  = true
-    }
-  }
+  #   visibility_config {
+  #     cloudwatch_metrics_enabled = true
+  #     metric_name               = "RateLimitMetric"
+  #     sampled_requests_enabled  = true
+  #   }
+  # }
 
   visibility_config {
     cloudwatch_metrics_enabled = true

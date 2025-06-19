@@ -7,6 +7,7 @@ resources:
 - checkout.yaml
 - orders.yaml
 - ./ui/
+- pdb-patch.yaml
 
 patches:
 - path: graviton-patch.yaml
