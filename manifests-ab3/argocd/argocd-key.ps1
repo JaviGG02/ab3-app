@@ -15,3 +15,7 @@ kubectl create secret generic argocd-repo-ssh -n argocd `
 
 # Step 5: Verify the secret was created
 kubectl get secret argocd-repo-ssh -n argocd
+
+# PASSWORD
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | ForEach-Object { [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($_)) }
+

@@ -50,7 +50,6 @@ metadata:
     app.kubernetes.io/owner: retail-store-sample
     app.kubernetes.io/managed-by: Helm
 spec:
-  replicas: 1
   strategy:
     rollingUpdate:
       maxUnavailable: 1
@@ -73,6 +72,23 @@ spec:
         app.kubernetes.io/component: service
         app.kubernetes.io/owner: retail-store-sample
     spec:
+      affinity:
+        # Ensure that pods are scheduled on different nodes
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/component: service
+                  app.kubernetes.io/instance: catalog
+              topologyKey: kubernetes.io/hostname  # Spread replicas across different nodes
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname  # Ensure even distribution across nodes
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/component: service
+              app.kubernetes.io/instance: catalog
       serviceAccountName: catalog
       securityContext:
         fsGroup: 1000
@@ -113,3 +129,26 @@ spec:
         - name: tmp-volume
           emptyDir:
             medium: Memory
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: catalog-hpa
+  labels:
+    app.kubernetes.io/name: catalog
+    app.kubernetes.io/instance: catalog
+    app.kubernetes.io/owner: retail-store-sample
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: catalog
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 80

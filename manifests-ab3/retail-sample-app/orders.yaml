@@ -132,7 +132,7 @@ metadata:
     app.kubernetes.io/owner: retail-store-sample
     app.kubernetes.io/managed-by: Helm
 spec:
-  replicas: 1
+  replicas: 2
   strategy:
     rollingUpdate:
       maxUnavailable: 1
@@ -155,6 +155,23 @@ spec:
         app.kubernetes.io/component: service
         app.kubernetes.io/owner: retail-store-sample
     spec:
+      affinity:
+        # Ensure that pods are scheduled on different nodes
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/component: service
+                  app.kubernetes.io/instance: orders
+              topologyKey: kubernetes.io/hostname  # Spread replicas across different nodes
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname  # Ensure even distribution across nodes
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/component: service
+              app.kubernetes.io/instance: orders
       serviceAccountName: orders
       securityContext:
         fsGroup: 1000
@@ -215,7 +232,6 @@ metadata:
     app.kubernetes.io/owner: retail-store-sample
     app.kubernetes.io/managed-by: Helm
 spec:
-  replicas: 1
   serviceName: orders-postgresql
   selector:
     matchLabels:
@@ -231,6 +247,23 @@ spec:
         app.kubernetes.io/component: postgresql
         app.kubernetes.io/owner: retail-store-sample
     spec:
+      affinity:
+        # Ensure that pods are scheduled on different nodes
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/component: postgresql
+                  app.kubernetes.io/instance: orders
+              topologyKey: kubernetes.io/hostname  # Spread replicas across different nodes
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname  # Ensure even distribution across nodes
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/component: postgresql
+              app.kubernetes.io/instance: orders
       containers:
         - name: postgresql
           image: "public.ecr.aws/docker/library/postgres:16.1"
@@ -274,7 +307,6 @@ metadata:
     app.kubernetes.io/owner: retail-store-sample
     app.kubernetes.io/managed-by: Helm
 spec:
-  replicas: 1
   serviceName: orders-rabbitmq
   selector:
     matchLabels:
@@ -290,6 +322,23 @@ spec:
         app.kubernetes.io/component: rabbitmq
         app.kubernetes.io/owner: retail-store-sample
     spec:
+      affinity:
+        # Ensure that pods are scheduled on different nodes
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/component: rabbitmq
+                  app.kubernetes.io/instance: orders
+              topologyKey: kubernetes.io/hostname  # Spread replicas across different nodes
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname  # Ensure even distribution across nodes
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/component: rabbitmq
+              app.kubernetes.io/instance: orders
       containers:
         - name: rabbitmq
           image: "public.ecr.aws/docker/library/rabbitmq:3-management"
@@ -307,3 +356,72 @@ spec:
       volumes:
       - name: data
         emptyDir: {}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: orders-hpa
+  labels:
+    app.kubernetes.io/name: orders
+    app.kubernetes.io/instance: orders
+    app.kubernetes.io/owner: retail-store-sample
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: orders
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 80
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: orders-postgresql-hpa
+  labels:
+    app.kubernetes.io/name: orders
+    app.kubernetes.io/instance: orders
+    app.kubernetes.io/owner: retail-store-sample
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: StatefulSet
+    name: orders-postgresql
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 80
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: orders-rabbitmq-hpa
+  labels:
+    app.kubernetes.io/name: orders
+    app.kubernetes.io/instance: orders
+    app.kubernetes.io/owner: retail-store-sample
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: StatefulSet
+    name: orders-rabbitmq
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 80

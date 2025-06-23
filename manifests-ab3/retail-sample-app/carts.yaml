@@ -88,7 +88,6 @@ metadata:
     app.kubernetes.io/owner: retail-store-sample
     app.kubernetes.io/managed-by: Helm
 spec:
-  replicas: 1
   strategy:
     rollingUpdate:
       maxUnavailable: 1
@@ -111,6 +110,23 @@ spec:
         app.kubernetes.io/component: service
         app.kubernetes.io/owner: retail-store-sample
     spec:
+      affinity:
+        # Ensure that pods are scheduled on different nodes
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/component: service
+                  app.kubernetes.io/instance: carts
+              topologyKey: kubernetes.io/hostname  # Spread replicas across different nodes
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname  # Ensure even distribution across nodes
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/component: service
+              app.kubernetes.io/instance: cart
       serviceAccountName: carts
       securityContext:
         fsGroup: 1000
@@ -167,7 +183,6 @@ metadata:
     app.kubernetes.io/owner: retail-store-sample
     app.kubernetes.io/managed-by: Helm
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app.kubernetes.io/name: carts
@@ -182,6 +197,23 @@ spec:
         app.kubernetes.io/component: dynamodb
         app.kubernetes.io/owner: retail-store-sample
     spec:
+      affinity:
+        # Ensure that pods are scheduled on different nodes
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/component: dynamodb
+                  app.kubernetes.io/instance: carts
+              topologyKey: kubernetes.io/hostname  # Spread replicas across different nodes
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname  # Ensure even distribution across nodes
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/component: dynamodb
+              app.kubernetes.io/instance: cart
       containers:
         - name: dynamodb
           image: "public.ecr.aws/aws-dynamodb-local/aws-dynamodb-local:1.25.1"
@@ -190,3 +222,51 @@ spec:
             - name: dynamodb
               containerPort: 8000
               protocol: TCP
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: carts-hpa
+  labels:
+    app.kubernetes.io/name: carts
+    app.kubernetes.io/instance: carts
+    app.kubernetes.io/component: service
+    app.kubernetes.io/owner: retail-store-sample
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: carts
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 80
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: carts-dynamodb-hpa
+  labels:
+    app.kubernetes.io/name: carts
+    app.kubernetes.io/instance: carts
+    app.kubernetes.io/component: dynamodb
+    app.kubernetes.io/owner: retail-store-sample
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: carts-dynamodb
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 80

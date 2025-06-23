@@ -54,9 +54,6 @@ module "eks" {
     metrics-server = {
       most_recent = true
     }
-    amazon-cloudwatch-observability = {
-      most_recent = true
-    }
   }
 
   vpc_id     = module.vpc.vpc_id

@@ -1,11 +1,12 @@
+# IN ORDER TO MAKE IT WORK, IT MUST DEPLOY A CLASSIC LB NOT AN ALB NOR ELB
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 namespace: argocd
 resources:
   - https://raw.githubusercontent.com/argoproj/argo-cd/v2.7.2/manifests/install.yaml
-  - retail-app.yaml
-  - kube-ops-view-app.yaml
+  # - retail-app.yaml
+  # - kube-ops-view-app.yaml
 
 patches:
   - patch: |-
