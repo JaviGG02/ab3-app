@@ -37,6 +37,17 @@ spec:
         - name: rabbitmq
           image: "public.ecr.aws/docker/library/rabbitmq:3-management"
           imagePullPolicy: IfNotPresent
+          env:
+            - name: RABBITMQ_DEFAULT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: orders-rabbitmq
+                  key: RETAIL_ORDERS_MESSAGING_USERNAME
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: orders-rabbitmq
+                  key: RETAIL_ORDERS_MESSAGING_PASSWORD
           ports:
           - name: amqp
             containerPort: 5672
