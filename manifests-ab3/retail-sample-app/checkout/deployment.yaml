@@ -1,11 +1,11 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: orders
+  name: checkout
   labels:
-    helm.sh/chart: orders-1.1.0
-    app.kubernetes.io/name: orders
-    app.kubernetes.io/instance: orders
+    helm.sh/chart: checkout-1.1.0
+    app.kubernetes.io/name: checkout
+    app.kubernetes.io/instance: checkout
     app.kubernetes.io/component: service
     app.kubernetes.io/owner: retail-store-sample
     app.kubernetes.io/managed-by: Helm
@@ -16,45 +16,47 @@ spec:
     type: RollingUpdate
   selector:
     matchLabels:
-      app.kubernetes.io/name: orders
-      app.kubernetes.io/instance: orders
+      app.kubernetes.io/name: checkout
+      app.kubernetes.io/instance: checkout
       app.kubernetes.io/component: service
       app.kubernetes.io/owner: retail-store-sample
   template:
     metadata:
       annotations:
-        prometheus.io/path: /actuator/prometheus
+        prometheus.io/path: /metrics
         prometheus.io/port: "8080"
         prometheus.io/scrape: "true"
       labels:
-        app.kubernetes.io/name: orders
-        app.kubernetes.io/instance: orders
+        app.kubernetes.io/name: checkout
+        app.kubernetes.io/instance: checkout
         app.kubernetes.io/component: service
         app.kubernetes.io/owner: retail-store-sample
     spec:
+      affinity:
+        # Ensure that pods are scheduled on different nodes
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/component: service
+                  app.kubernetes.io/instance: checkout
+              topologyKey: kubernetes.io/hostname  # Spread replicas across different nodes
       topologySpreadConstraints:
         - maxSkew: 1
-          topologyKey: kubernetes.io/hostname
+          topologyKey: kubernetes.io/hostname  # Ensure even distribution across nodes
           whenUnsatisfiable: DoNotSchedule
           labelSelector:
             matchLabels:
               app.kubernetes.io/component: service
-              app.kubernetes.io/instance: orders
-      serviceAccountName: orders
+              app.kubernetes.io/instance: checkout
+      serviceAccountName: checkout
       securityContext:
         fsGroup: 1000
       containers:
-        - name: orders
-          env:
-            - name: JAVA_OPTS
-              value: -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/urandom
+        - name: checkout
           envFrom:
-            - secretRef:
-                name: orders-rabbitmq
-            - secretRef:
-                name: orders-db
             - configMapRef:
-                name: orders
+                name: checkout
           securityContext:
             capabilities:
               drop:
@@ -62,7 +64,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "public.ecr.aws/aws-containers/retail-store-sample-orders:1.1.0"
+          image: "public.ecr.aws/aws-containers/retail-store-sample-checkout:1.1.0"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -70,15 +72,14 @@ spec:
               protocol: TCP
           readinessProbe:
             httpGet:
-              path: /actuator/health/readiness
+              path: /health
               port: 8080
-            initialDelaySeconds: 10
           resources:
             limits:
-              memory: 512Mi
+              memory: 256Mi
             requests:
-              cpu: 256m
-              memory: 512Mi
+              cpu: 128m
+              memory: 256Mi
           volumeMounts:
             - mountPath: /tmp
               name: tmp-volume

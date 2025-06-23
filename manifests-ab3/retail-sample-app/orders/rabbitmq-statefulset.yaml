@@ -25,14 +25,6 @@ spec:
         app.kubernetes.io/component: rabbitmq
         app.kubernetes.io/owner: retail-store-sample
     spec:
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector:
-                matchLabels:
-                  app.kubernetes.io/component: rabbitmq
-                  app.kubernetes.io/instance: orders
-              topologyKey: kubernetes.io/hostname
       topologySpreadConstraints:
         - maxSkew: 1
           topologyKey: kubernetes.io/hostname

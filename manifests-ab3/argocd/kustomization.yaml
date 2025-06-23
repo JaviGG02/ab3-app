@@ -6,13 +6,7 @@ namespace: argocd
 resources:
   - https://raw.githubusercontent.com/argoproj/argo-cd/v2.7.2/manifests/install.yaml
   # - retail-app.yaml
-  # - kube-ops-view-app.yaml
-  - retail-ui-app.yaml
-  - retail-carts-app.yaml
-  # - retail-catalog-app.yaml
-  # - retail-checkout-app.yaml
-  - retail-orders-app.yaml
-  # - retail-common-app.yaml
+  - ./retail-apps/
 
 patches:
   - patch: |-

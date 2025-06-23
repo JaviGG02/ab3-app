@@ -2,12 +2,11 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-- catalog.yaml
-- checkout.yaml
-- ./orders/
 - ./ui/
-- ./carts/
+- ./catalog/
+- ./checkout/
 - ./orders/
+- ./carts/
 - pdb-patch.yaml
 
 

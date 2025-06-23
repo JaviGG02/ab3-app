@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: checkout-redis
+  labels:
+    helm.sh/chart: checkout-1.1.0
+    app.kubernetes.io/name: checkout
+    app.kubernetes.io/instance: checkout
+    app.kubernetes.io/component: redis
+    app.kubernetes.io/owner: retail-store-sample
+    app.kubernetes.io/managed-by: Helm
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: checkout
+      app.kubernetes.io/instance: checkout
+      app.kubernetes.io/component: redis
+      app.kubernetes.io/owner: retail-store-sample
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: checkout
+        app.kubernetes.io/instance: checkout
+        app.kubernetes.io/component: redis
+        app.kubernetes.io/owner: retail-store-sample
+    spec:
+      affinity:
+        # Ensure that pods are scheduled on different nodes
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/component: redis
+                  app.kubernetes.io/instance: checkout
+              topologyKey: kubernetes.io/hostname  # Spread replicas across different nodes
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname  # Ensure even distribution across nodes
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/component: redis
+              app.kubernetes.io/instance: checkout
+      containers:
+        - name: redis
+          image: "redis:6.0-alpine"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: redis
+              containerPort: 6379
+              protocol: TCP
