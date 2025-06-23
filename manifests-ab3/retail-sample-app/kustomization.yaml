@@ -14,3 +14,6 @@ patches:
 - path: graviton-patch.yaml
   target:
     kind: Deployment
+- path: otel-annotations-patch.yaml
+  target:
+    kind: Deployment
