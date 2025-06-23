@@ -32,15 +32,6 @@ spec:
         app.kubernetes.io/component: service
         app.kubernetes.io/owner: retail-store-sample
     spec:
-      affinity:
-        # Ensure that pods are scheduled on different nodes
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector:
-                matchLabels:
-                  app.kubernetes.io/component: service
-                  app.kubernetes.io/instance: checkout
-              topologyKey: kubernetes.io/hostname  # Spread replicas across different nodes
       topologySpreadConstraints:
         - maxSkew: 1
           topologyKey: kubernetes.io/hostname  # Ensure even distribution across nodes

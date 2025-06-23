@@ -12,7 +12,6 @@ metadata:
     app.kubernetes.io/owner: retail-store-sample
     app.kubernetes.io/managed-by: Helm
 spec:
-  replicas: 2  # Ensure 2 replicas for high availability
   strategy:
     rollingUpdate:
       maxUnavailable: 1
@@ -35,15 +34,6 @@ spec:
         app.kubernetes.io/component: service
         app.kubernetes.io/owner: retail-store-sample
     spec:
-      affinity:
-        # Ensure that pods are scheduled on different nodes
-        # podAntiAffinity:
-        #   requiredDuringSchedulingIgnoredDuringExecution:
-        #     - labelSelector:
-        #         matchLabels:
-        #           app.kubernetes.io/component: service
-        #           app.kubernetes.io/instance: ui
-        #       topologyKey: kubernetes.io/hostname  # Spread replicas across different nodes
       topologySpreadConstraints:
         - maxSkew: 1
           topologyKey: kubernetes.io/hostname  # Ensure even distribution across nodes

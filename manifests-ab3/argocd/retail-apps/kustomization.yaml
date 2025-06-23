@@ -7,4 +7,3 @@ resources:
 - retail-catalog-app.yaml
 - retail-checkout-app.yaml
 - retail-orders-app.yaml
-- retail-common-app.yaml
