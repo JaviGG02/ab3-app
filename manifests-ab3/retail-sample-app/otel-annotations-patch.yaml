@@ -2,6 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: not-important  # The name will be ignored if patching by strategic merge
+  annotations:
+    kustomize.toolkit.fluxcd.io/substitute: disabled
 spec:
   template:
     metadata:

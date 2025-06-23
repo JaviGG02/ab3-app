@@ -33,7 +33,7 @@ spec:
           labelSelector:
             matchLabels:
               app.kubernetes.io/component: dynamodb
-              app.kubernetes.io/instance: cart
+              app.kubernetes.io/instance: carts
       containers:
         - name: dynamodb
           image: "public.ecr.aws/aws-dynamodb-local/aws-dynamodb-local:1.25.1"
