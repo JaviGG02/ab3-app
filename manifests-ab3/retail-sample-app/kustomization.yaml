@@ -19,9 +19,6 @@ patches:
   target:
     kind: Deployment
     labelSelector: "app.kubernetes.io/name!=carts"
-- path: topology-spread-patch.yaml
-  target:
-    kind: Deployment
 - path: hpa-patch.yaml
   target:
     kind: HorizontalPodAutoscaler
