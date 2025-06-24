@@ -22,4 +22,3 @@ patches:
 - path: hpa-patch.yaml
   target:
     kind: HorizontalPodAutoscaler
-    labelSelector: "app.kubernetes.io/name in (ui,catalog,checkout,carts,orders)"
