@@ -1,0 +1,14 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: not-important
+spec:
+  template:
+    spec:
+      topologySpreadConstraints:
+        - maxSkew: 2
+          topologyKey: failure-domain.beta.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule 
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/component: service
