@@ -13,7 +13,7 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: carts
-  minReplicas: 20
+  minReplicas: 10
   maxReplicas: 200
   metrics:
   - type: Resource
