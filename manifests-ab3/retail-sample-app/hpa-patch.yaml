@@ -4,7 +4,7 @@ metadata:
   name: not-important
 spec:
   minReplicas: 6
-  maxReplicas: 100
+  maxReplicas: 200
   metrics:
   - type: Resource
     resource:
