@@ -48,6 +48,10 @@ spec:
           env:
             - name: RETAIL_CHECKOUT_USER_MODE
               value: "anonymous"
+            - name: RETAIL_CHECKOUT_USER_DEFAULT_EMAIL
+              value: "user@example.com"
+            - name: RETAIL_CHECKOUT_USER_DEFAULT_USERNAME
+              value: "user"
           envFrom:
             - configMapRef:
                 name: checkout
