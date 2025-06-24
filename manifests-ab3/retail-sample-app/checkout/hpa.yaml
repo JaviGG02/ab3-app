@@ -11,8 +11,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: checkout
-  minReplicas: 10
-  maxReplicas: 200
+  minReplicas: 6
+  maxReplicas: 100
   metrics:
   - type: Resource
     resource:
