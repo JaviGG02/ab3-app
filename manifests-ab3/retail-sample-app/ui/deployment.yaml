@@ -36,7 +36,7 @@ spec:
     spec:
       topologySpreadConstraints:
         - maxSkew: 1
-          topologyKey: kubernetes.io/hostname  # Ensure even distribution across nodes
+          topologyKey: failure-domain.beta.kubernetes.io/zone  # Ensure even distribution across zones
           whenUnsatisfiable: DoNotSchedule
           labelSelector:
             matchLabels:
