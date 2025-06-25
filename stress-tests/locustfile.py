@@ -8,8 +8,8 @@ class WebsiteUser(HttpUser):
     wait_time = between(2, 8)
     
     # Define the host URL
-    # host = "https://dnc5hqm2ao0wq.cloudfront.net"
-    host = "http://k8s-default-uiingres-24a499ec52-71359617.eu-west-1.elb.amazonaws.com"
+    host = "https://d34q6clef3mm3t.cloudfront.net"
+    # host = "http://k8s-default-uiingres-24a499ec52-71359617.eu-west-1.elb.amazonaws.com"
     
     def on_start(self):
         """Setup for each simulated user"""
