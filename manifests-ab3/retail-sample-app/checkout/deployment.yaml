@@ -26,6 +26,7 @@ spec:
         prometheus.io/path: /metrics
         prometheus.io/port: "8080"
         prometheus.io/scrape: "true"
+        instrumentation.opentelemetry.io/inject-nodejs: "false"
       labels:
         app.kubernetes.io/name: checkout
         app.kubernetes.io/instance: checkout
@@ -52,6 +53,8 @@ spec:
               value: "user@example.com"
             - name: RETAIL_CHECKOUT_USER_DEFAULT_USERNAME
               value: "user"
+            - name: OTEL_SDK_DISABLED
+              value: "true"
           envFrom:
             - configMapRef:
                 name: checkout

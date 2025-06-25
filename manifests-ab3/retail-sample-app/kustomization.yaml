@@ -14,11 +14,10 @@ patches:
 - path: graviton-patch.yaml
   target:
     kind: Deployment
-    labelSelector: "app.kubernetes.io/name!=carts"
 - path: otel-annotations-patch.yaml
   target:
     kind: Deployment
-    labelSelector: "app.kubernetes.io/name!=carts"
+    labelSelector: "app.kubernetes.io/name==catalog, ui, orders"
 # - path: hpa-patch.yaml
 #   target:
 #     kind: HorizontalPodAutoscaler
