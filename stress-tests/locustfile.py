@@ -8,7 +8,7 @@ class WebsiteUser(HttpUser):
     wait_time = between(2, 8)
     
     # Define the host URL
-    host = "https://d34q6clef3mm3t.cloudfront.net"
+    host = "http://k8s-default-uiingres-24a499ec52-1373152587.eu-west-1.elb.amazonaws.com"
     # host = "http://k8s-default-uiingres-24a499ec52-71359617.eu-west-1.elb.amazonaws.com"
     
     def on_start(self):

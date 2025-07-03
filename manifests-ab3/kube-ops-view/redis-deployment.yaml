@@ -39,3 +39,13 @@ spec:
           runAsNonRoot: true
           # we need to use the "redis" uid
           runAsUser: 999
+      
+      # Added nodeSelector to target the managed node group
+      nodeSelector:
+        role: system
+      
+      # Add tolerations for the CriticalAddonsOnly taint
+      tolerations:
+      - key: "CriticalAddonsOnly"
+        operator: "Exists"
+        effect: "PreferNoSchedule"
