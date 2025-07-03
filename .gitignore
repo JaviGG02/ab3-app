@@ -1,14 +1,23 @@
-# terraform generated files
-infrastructure-ab3/.terraform*
-terraform-plan
+# Terraform
+**/.terraform/
+**/.terraform.lock.hcl
+**/terraform.tfstate
+**/terraform.tfstate.backup
+**/.terraform.tfstate.lock.info
 
-# excluded files
-infrastructure-ab3/state.tf
-infrastructure-ab3/upload_db_secrets
-infrastructure-ab3/argo*
-infrastructure-ab3/eks-automode-config/nodeclass-ebs-optimized.yaml
+# Python
+**/__pycache__/
+**/*.pyc
+**/*.pyo
 
-# Environment variables and secrets
-.env
-*.env
-.env.*
+# Reports
+**/*.html
+
+# SSH Keys
+**/.ssh/
+**/id_*
+**/*.pem
+**/*.key
+
+# Logs
+**/*.log
