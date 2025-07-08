@@ -138,85 +138,6 @@ terraform plan
 terraform apply
 ```
 
-### Verification Steps
-
-After each stage, verify the deployment:
-
-**After Stage 1 (Foundation)**:
-```bash
-# Verify VPC and subnets
-aws ec2 describe-vpcs --filters "Name=tag:Name,Values=*ab3*"
-aws rds describe-db-clusters --db-cluster-identifier ab3-aurora-cluster
-```
-
-**After Stage 2 (EKS Cluster)**:
-```bash
-# Update kubeconfig and verify cluster
-aws eks update-kubeconfig --region <region> --name <cluster-name>
-kubectl get nodes
-kubectl get pods --all-namespaces
-```
-
-**After Stage 3 (EKS Add-ons)**:
-```bash
-# Verify add-ons installation
-kubectl get pods -n kube-system
-aws eks describe-addon --cluster-name <cluster-name> --addon-name aws-load-balancer-controller
-```
-
-**After Metrics Server Patch**:
-```bash
-# Verify metrics server is working
-kubectl top nodes
-kubectl get deployment metrics-server -n kube-system
-```
-
-**After Stage 4 (Web Layer)**:
-```bash
-# Verify ALB creation
-aws elbv2 describe-load-balancers
-kubectl get ingress --all-namespaces
-```
-
-## Metrics Server Patch Script
-
-The `patch-metrics-server.sh` script is essential for proper metrics server functionality. It:
-
-- Waits for the metrics-server deployment to be available
-- Applies necessary patches for kubelet communication
-- Configures proper TLS settings
-- Enables host network mode for improved connectivity
-
-**Script Features**:
-- Automatic retry mechanism with timeout
-- Color-coded output for better visibility
-- Error handling and validation
-- Status verification after patching
-
-## Troubleshooting
-
-### Common Issues
-
-**Terraform State Lock**:
-```bash
-# If terraform state is locked
-terraform force-unlock <lock-id>
-```
-
-**EKS Cluster Access**:
-```bash
-# Update kubeconfig if kubectl access fails
-aws eks update-kubeconfig --region <region> --name <cluster-name>
-```
-
-**Metrics Server Issues**:
-```bash
-# Check metrics server logs
-kubectl logs -n kube-system deployment/metrics-server
-# Re-run the patch script if needed
-./patch-metrics-server.sh
-```
-
 ### Cleanup
 
 To destroy the infrastructure, reverse the deployment order:
@@ -257,10 +178,4 @@ Each stage produces outputs that are consumed by subsequent stages. Key outputs 
 
 ## Monitoring and Logging
 
-The deployment includes:
-- CloudWatch logging for EKS control plane
-- Metrics server for resource monitoring
-- AWS Load Balancer Controller for ingress management
-- Container Insights (if enabled)
-
-For additional monitoring, consider deploying Prometheus, Grafana, or other observability tools using the Kubernetes manifests in the `manifests-ab3/` directory.
+You have to go to the console, to your EKS cluster and enable the cloudwatch observability add-on

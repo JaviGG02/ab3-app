@@ -2,6 +2,37 @@
 
 This project contains the infrastructure and application manifests for the AB3 application deployment on AWS EKS.
 
+## Problem statement
+
+“AnyCompany” has been around for many years and has grown both organically and through acquisition and now operates in almost every industry.
+AnyCompany has a monolithic and worldwide e-commerce web application and is interested in exploring a microservices approach on AWS cloud, particularly leveraging the use of containers.Their current setup consists of:
+- A monolithic application (web servers to serve content) running on premises
+- Data stored in a MySQL database
+- Custom user management solution to handle users (no third-party solutions are used)
+- Cloudflare infrastructure for CDN and Web Application Firewall (WAF) implementation, handling content delivery and security at the edge
+
+They have some challenges with their current architecture:The monolithic structure makes it difficult to scale and maintain different components independently. Their operations team spends significant time managing servers and applying patches. During peak loads, they struggle with manual scaling interventions. Additionally, they have high latency for global users.
+Requirements:
+- Present a cloud architecture on AWS using a microservices approach with containers
+- Minimize server management and maintenance overhead and implement automatic scaling for containers during peak loads
+- Ensure worldwide low-latency customer experience
+- Integrate AWS security services for protection against DDoS attacks and other security threats
+
+## Proposed solution
+
+A production-ready AWS EKS platform that deploys and manages a microservices-based retail application with enhanced security, high availability, and automated scaling capabilities. 
+The proposed solution includes:
+- A multi-AZ VPC architecture with public and private subnets
+- An EKS cluster with AutoMode
+- An Aurora MySQL cluster for persistent data storage
+- A CloudFront distribution with WAF protection and optimized caching
+- Microservices architecture for a retail sample application
+- AutoScaling
+
+![Architecture Diagram](./architecture.png)
+
+
+
 ## Project Structure
 
 ```
@@ -12,7 +43,6 @@ ab3-app/
 │   ├── 03-eks-addons/        # EKS add-ons and extensions
 │   ├── 04-web-layer/         # Web layer infrastructure
 │   └── patch-metrics-server.sh  # Metrics server patch script
-├── infrastructure-ab3/       # Alternative infrastructure configuration
 ├── manifests-ab3/           # Kubernetes manifests and applications
 │   ├── argocd/              # ArgoCD configuration
 │   ├── eks-automode-config/ # EKS auto-mode configuration
@@ -50,6 +80,8 @@ For detailed deployment instructions, see the [infrastructure-staged documentati
 
 ### Applications (Kubernetes)
 - **manifests-ab3/**: Kubernetes application manifests and configurations
+
+### Load testing
 - **stress-tests/**: Performance testing and load generation tools
 
 ## Important Notes
